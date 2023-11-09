@@ -34,7 +34,20 @@ void enqueue(Queue *queue, Process *process)
 {
     ProcessQueue *process_queue = (ProcessQueue *)malloc(sizeof(ProcessQueue));
     process_queue->process = process;
-    process_queue->next = NULL;
+
+    if (queue->tail == NULL)
+        queue->tail = process_queue;
+
+    else
+    {
+        queue->tail->next = process_queue;
+        queue->tail = process_queue;
+    }
+
+    if (queue->head == NULL)
+        queue->head = process_queue;
+
+    queue->size++;
 }
 
 Process *dequeue(Queue *queue)
