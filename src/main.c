@@ -7,19 +7,24 @@
 
 #include "queue.h"
 
-#define PROCESS_MAX_AMOUNT 10
-#define START_TIME_LIMIT 10
-#define DURATION_TIME_LIMIT 20
-#define IO_MAX_AMOUNT 3
-#define IO_TYPES_AMOUNT 3
+#define PROCESS_AMOUNT 10
+#define START_LIMIT 10
+#define DURATION_LIMIT 20
 
+#define IO_NOT_DONE -1
+#define IO_IN_PROGRESS 0
+#define IO_DONE 1
+
+#define IO_LIMIT 3
+#define IO_TYPES_AMOUNT 3
 #define IO_DISK_DURATION 3
 #define IO_TAPE_DURATION 5
 #define IO_PRINTER_DURATION 10
 
-int device_current_time;
-int ended_processes;
-Process processes[PROCESS_MAX_AMOUNT];
+int current_time;
+int remaining_time;
+
+Process processes[PROCESS_AMOUNT];
 Process *running;
 Queue *high, *low;
 
@@ -28,211 +33,229 @@ Process *io_running[IO_TYPES_AMOUNT];
 int io_duration[IO_TYPES_AMOUNT] = {IO_DISK_DURATION, IO_TAPE_DURATION, IO_PRINTER_DURATION};
 int io_progress[IO_TYPES_AMOUNT];
 
-FILE *log_file;
-
-void generate_processes(void)
+void initialize_process(Process *process)
 {
-    fprintf(log_file, "--- Processos gerados aleatoriamente: ---\n");
-    for (int i = 0; i < PROCESS_MAX_AMOUNT; i++)
-    {
-        Process *p = &processes[i];
-        p->pid = i;
-        p->start = rand() % START_TIME_LIMIT;
-        p->duration = (rand() % DURATION_TIME_LIMIT) + 1;
-        p->progress = 0;
+	if (process->duration > 1)
+	{
+		process->io_amount = rand() % (IO_LIMIT + 1);
+		process->io_starts = malloc(process->io_amount * sizeof(int));
+		process->io_types = malloc(process->io_amount * sizeof(int));
+		process->io_done = malloc(process->io_amount * sizeof(int));
 
-        if (p->duration > 1)
-        {
-            p->io_amount = rand() % (IO_MAX_AMOUNT + 1);
-            p->io_starts = malloc(p->io_amount * sizeof(int));
-            p->io_types = malloc(p->io_amount * sizeof(int));
-            p->io_done = malloc(p->io_amount * sizeof(int));
-
-            for (int j = 0; j < p->io_amount; j++)
-            {
-                p->io_starts[j] = (rand() % p->duration) + 1;
-                p->io_types[j] = rand() % IO_TYPES_AMOUNT;
-                p->io_done[j] = -1;
-            }
-        }
-        else
-        {
-            p->io_amount = 0;
-        }
-
-        fprintf(log_file, "PID %d\n", p->pid);
-        fprintf(log_file, "Start %d\n", p->start);
-        fprintf(log_file, "Duration %d\n", p->duration);
-        fprintf(log_file, "IO amount %d\n", p->io_amount);
-        for (int j = 0; j < p->io_amount; j++)
-        {
-            fprintf(log_file, "Type: %d Start: %d\n", p->io_types[j], p->io_starts[j]);
-        }
-        fprintf(log_file, "==============\n");
-    }
+		for (int i = 0; i < process->io_amount; i++)
+		{
+			process->io_starts[i] = (rand() % process->duration) + 1;
+			process->io_types[i] = rand() % IO_TYPES_AMOUNT;
+			process->io_done[i] = IO_NOT_DONE;
+		}
+	}
+	else
+	{
+		process->io_amount = 0;
+	}
 }
 
-void tick(void)
+void create_random_processes(int quantity)
 {
-    /* Coloca processos novos na fila */
-    for (int i = 0; i < PROCESS_MAX_AMOUNT; i++)
-    {
-        Process *p = &processes[i];
-        if (p->start == device_current_time)
-            queue_add(high, p);
-    }
+	printf("Gerando processos aleatoriamente...\n");
+	printf("=====================\n");
 
-    /* Move processos interrompidos para a fila de baixa prioridade */
-    if (running)
-    {
-        if (running->progress == running->duration)
-        {
-            ended_processes;
-            running->tick_end = device_current_time;
-            running = NULL;
-        }
-        else
-        {
-            queue_add(low, running);
-        }
-    }
+	for (int i = 0; i < quantity; i++)
+	{
+		Process *process = &processes[i];
+		process->pid = i;
+		process->start = rand() % START_LIMIT;
+		process->duration = (rand() % DURATION_LIMIT) + 1;
+		process->progress = 0;
 
-    do
-    {
-        /* Escolhe o processo que será executado */
-        if (!queue_is_empty(high))
-        {
-            running = queue_remove(high);
-        }
-        else if (!queue_is_empty(low))
-        {
-            running = queue_remove(low);
-        }
+		initialize_process(process);
 
-        if (!running)
-        {
-            break;
-        }
-        else if (!running->progress)
-        {
-            running->tick_start = device_current_time;
-        }
+		printf("PID %d\n", process->pid);
+		printf("Início %d\n", process->start);
+		printf("Duração %d\n", process->duration);
+		printf("Quantidade IO %d\n", process->io_amount);
+		for (int j = 0; j < process->io_amount; j++)
+		{
+			printf("Tipo: %d Inicio: %d\n", process->io_types[j], process->io_starts[j]);
+		}
+		printf("-------------\n");
+		sleep(1);
+	}
 
-        /* Verifica se o processo que foi escolhido quer fazer IO */
-        for (int i = 0; i < running->io_amount; i++)
-        {
-            int start = running->io_starts[i];
+	printf("%d processos gerados aleatoriamente com sucesso.\n\n", quantity);
+}
 
-            if (start == running->progress && running->io_done[i] == -1)
-            {
-                int type = running->io_types[i];
-                running->io_done[i] = 0;
-                queue_add(io[type], running);
-                running = NULL;
-                break;
-            }
-        }
-    } while (!running);
+void select_process_to_run()
+{
+	do
+	{
+		/* Escolhe o processo que será executado */
+		if (!queue_is_empty(high))
+		{
+			running = queue_remove(high);
+		}
+		else if (!queue_is_empty(low))
+		{
+			running = queue_remove(low);
+		}
 
-    /* Escolhe os processos que farão IO */
-    for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-    {
-        if (io_progress[i] == io_duration[i])
-        {
-            Process *finished = io_running[i];
+		if (!running)
+		{
+			break;
+		}
+		else if (!running->progress)
+		{
+			running->enqueued_time = current_time;
+		}
 
-            switch (i)
-            {
-            case IO_DISK:
-                queue_add(low, finished);
-                break;
-            case IO_TAPE:
-            case IO_PRINTER:
-                queue_add(high, finished);
-                break;
-            }
+		for (int i = 0; i < running->io_amount; i++)
+		{
+			int start = running->io_starts[i];
 
-            for (int j = 0; j < finished->io_amount; j++)
-            {
-                if (finished->io_done[j] == 0)
-                {
-                    finished->io_done[j] = 1;
-                    break;
-                }
-            }
+			if (start == running->progress && running->io_done[i] == -1)
+			{
+				int type = running->io_types[i];
+				running->io_done[i] = IO_IN_PROGRESS;
+				queue_add(io[type], running);
+				running = NULL;
+				break;
+			}
+		}
+	} while (!running);
+}
 
-            io_progress[i] = 0;
-            io_running[i] = queue_remove(io[i]);
-        }
-        else if (!io_running[i])
-        {
-            io_running[i] = queue_remove(io[i]);
-        }
+void select_io_to_processes()
+{
+	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+	{
+		if (io_progress[i] == io_duration[i])
+		{
+			Process *ended_process = io_running[i];
 
-        if (io_running[i])
-            io_progress[i]++;
-    }
+			switch (i)
+			{
+			case IO_DISK:
+				queue_add(low, ended_process);
+				break;
+			case IO_TAPE:
+			case IO_PRINTER:
+				queue_add(high, ended_process);
+				break;
+			}
 
-    fprintf(log_file, "Tick: %d\n", device_current_time);
-    if (running)
-        fprintf(log_file, "Running: %d\n", running->pid);
-    else
-        fprintf(log_file, "Running: none\n");
-    fprintf(log_file, "High:\n");
-    queue_print(log_file, high);
-    fprintf(log_file, "Low:\n");
-    queue_print(log_file, low);
-    if (io_running[IO_DISK])
-        fprintf(log_file, "Running disk: %d\n", io_running[IO_DISK]->pid);
-    else
-        fprintf(log_file, "Running disk: none\n");
-    fprintf(log_file, "Disk:\n");
-    queue_print(log_file, io[IO_DISK]);
-    if (io_running[IO_TAPE])
-        fprintf(log_file, "Running tape: %d\n", io_running[IO_TAPE]->pid);
-    else
-        fprintf(log_file, "Running tape: none\n");
-    fprintf(log_file, "Tape:\n");
-    queue_print(log_file, io[IO_TAPE]);
-    if (io_running[IO_PRINTER])
-        fprintf(log_file, "Running printer: %d\n", io_running[IO_PRINTER]->pid);
-    else
-        fprintf(log_file, "Running printer: none\n");
-    fprintf(log_file, "Printer:\n");
-    queue_print(log_file, io[IO_PRINTER]);
-    fprintf(log_file, "---\n");
+			for (int j = 0; j < ended_process->io_amount; j++)
+			{
+				if (ended_process->io_done[j] == IO_IN_PROGRESS)
+				{
+					ended_process->io_done[j] = IO_DONE;
+					break;
+				}
+			}
 
-    if (running)
-        running->progress++;
-    device_current_time++;
+			io_progress[i] = 0;
+			io_running[i] = queue_remove(io[i]);
+		}
+		else if (!io_running[i])
+		{
+			io_running[i] = queue_remove(io[i]);
+		}
+
+		if (io_running[i])
+			io_progress[i]++;
+	}
+}
+
+void calculate_scheduler(int quantity)
+{
+	printf("Rodando o escalonador de processos...\n");
+	/* Coloca processos novos na fila */
+	for (int i = 0; i < PROCESS_AMOUNT; i++)
+	{
+		Process *process = &processes[i];
+		if (process->start == current_time)
+			queue_add(high, process);
+	}
+
+	/* Move processos interrompidos para a fila de baixa prioridade */
+	if (running)
+	{
+		if (running->progress == running->duration)
+		{
+			remaining_time++;
+			running->dequeued_time = current_time;
+			running = NULL;
+		}
+		else
+		{
+			queue_add(low, running);
+		}
+	}
+
+	select_process_to_run();
+	select_io_to_processes();
+
+	printf("Tick: %d\n", current_time);
+	if (running)
+		printf("Running: %d\n", running->pid);
+	else
+		printf("Running: none\n");
+	printf("High:\n");
+	queue_print(high);
+	printf("Low:\n");
+	queue_print(low);
+	if (io_running[IO_DISK])
+		printf("Running disk: %d\n", io_running[IO_DISK]->pid);
+	else
+		printf("Running disk: none\n");
+	printf("Disk:\n");
+	queue_print(io[IO_DISK]);
+	if (io_running[IO_TAPE])
+		printf("Running tape: %d\n", io_running[IO_TAPE]->pid);
+	else
+		printf("Running tape: none\n");
+	printf("Tape:\n");
+	queue_print(io[IO_TAPE]);
+	if (io_running[IO_PRINTER])
+		printf("Running printer: %d\n", io_running[IO_PRINTER]->pid);
+	else
+		printf("Running printer: none\n");
+	printf("Printer:\n");
+	queue_print(io[IO_PRINTER]);
+	printf("---\n");
+
+	if (running)
+		running->progress++;
+	current_time++;
 }
 
 int main(int argc, char **argv)
 {
-    srand((unsigned)time(NULL));
+	srand((unsigned)time(NULL));
+	int quantity = 1 + (rand() % PROCESS_AMOUNT);
 
-    generate_processes();
-    high = queue_new();
-    low = queue_new();
-    for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-        io[i] = queue_new();
+	create_random_processes(quantity);
+	high = queue_new();
+	low = queue_new();
+	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+		io[i] = queue_new();
 
-    fprintf(log_file, "\n--- Execução: ---\n");
-    while (ended_processes != PROCESS_MAX_AMOUNT)
-    {
-        tick();
-    }
+	printf("Executando o escalonador de processos...\n");
+	while (remaining_time != quantity)
+	{
+		calculate_scheduler(quantity);
+		sleep(1);
+	}
 
-    fprintf(log_file, "\n--- Vida dos processos: ---\n");
-    for (int i = 0; i < PROCESS_MAX_AMOUNT; i++)
-    {
-        Process *p = &processes[i];
-        fprintf(log_file, "PID: %d Start tick: %d End tick: %d Ticks taken: %d\n",
-                p->pid, p->tick_start, p->tick_end, p->tick_end - p->tick_start);
-    }
+	printf("\n--- Vida dos processos: ---\n");
+	for (int i = 0; i < quantity; i++)
+	{
+		Process *p = &processes[i];
+		printf("PID: %d Start tick: %d End tick: %d Ticks taken: %d\n",
+			   p->pid, p->enqueued_time, p->dequeued_time, p->dequeued_time - p->enqueued_time);
+	}
 
-    queue_free(high);
-    queue_free(low);
-    for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-        queue_free(io[i]);
+	queue_free(high);
+	queue_free(low);
+	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+		queue_free(io[i]);
 }
