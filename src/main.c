@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "queue.h"
+#include "util.h"
 
 #define PROCESS_AMOUNT 10
 #define START_LIMIT 10
@@ -58,9 +58,6 @@ void initialize_process(Process *process)
 
 void create_random_processes()
 {
-	printf("Gerando processos aleatoriamente...\n");
-	printf("=====================\n");
-
 	for (int i = 0; i < quantity; i++)
 	{
 		Process *process = &processes[i];
@@ -231,34 +228,52 @@ void calculate_scheduler()
 
 int main(int argc, char **argv)
 {
+	printf("=====================================\n");
+	printf("Iniciando o algoritmo de escalonamento...\n");
 	srand((unsigned)time(NULL));
 
 	quantity = 1 + (rand() % PROCESS_AMOUNT);
+	printf("Quantidade de processos selecionada aleatoriamente: %d\n", quantity);
+	printf("=====================================\n");
 
+	printf("Gerando processos aleatoriamente...\n");
+	printf("----------------\n");
 	create_random_processes();
-	high = queue_new();
-	low = queue_new();
+	printf("=====================================\n");
 
+	printf("Criando filas de prioridade...\n");
+	high = queue_new();
+	printf("Fila de prioridade ALTA criada com sucesso.\n");
+	low = queue_new();
+	printf("Fila de prioridade BAIXA criada com sucesso.\n");
+	printf("=====================================\n");
+
+	printf("Criando filas de I/O...\n");
 	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+	{
 		io[i] = queue_new();
+		printf("Fila de I/O para %s criada com sucesso.\n", get_enum_name(i));
+	}
+	printf("=====================================\n");
 
 	printf("Executando o escalonador de processos...\n");
 	while (remaining_time != quantity)
 	{
+		printf("Tempo restante: %d\n", quantity - remaining_time);
 		calculate_scheduler();
 		// sleep(1);
 	}
 
-	printf("\n--- Vida dos processos: ---\n");
-	for (int i = 0; i < quantity; i++)
-	{
-		Process *p = &processes[i];
-		printf("PID: %d Start tick: %d End tick: %d Ticks taken: %d\n",
-			   p->pid, p->enqueued_time, p->dequeued_time, p->dequeued_time - p->enqueued_time);
-	}
+	// printf("\n--- Vida dos processos: ---\n");
+	// for (int i = 0; i < quantity; i++)
+	// {
+	// 	Process *p = &processes[i];
+	// 	printf("PID: %d Start tick: %d End tick: %d Ticks taken: %d\n",
+	// 		   p->pid, p->enqueued_time, p->dequeued_time, p->dequeued_time - p->enqueued_time);
+	// }
 
-	queue_free(high);
-	queue_free(low);
-	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-		queue_free(io[i]);
+	// queue_free(high);
+	// queue_free(low);
+	// for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+	// queue_free(io[i]);
 }
