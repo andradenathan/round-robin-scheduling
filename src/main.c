@@ -23,6 +23,7 @@
 
 int current_time;
 int remaining_time;
+int quantity;
 
 Process processes[PROCESS_AMOUNT];
 Process *running;
@@ -55,7 +56,7 @@ void initialize_process(Process *process)
 	}
 }
 
-void create_random_processes(int quantity)
+void create_random_processes()
 {
 	printf("Gerando processos aleatoriamente...\n");
 	printf("=====================\n");
@@ -165,7 +166,7 @@ void select_io_to_processes()
 	}
 }
 
-void calculate_scheduler(int quantity)
+void calculate_scheduler()
 {
 	printf("Rodando o escalonador de processos...\n");
 	/* Coloca processos novos na fila */
@@ -231,19 +232,21 @@ void calculate_scheduler(int quantity)
 int main(int argc, char **argv)
 {
 	srand((unsigned)time(NULL));
-	int quantity = 1 + (rand() % PROCESS_AMOUNT);
 
-	create_random_processes(quantity);
+	quantity = 1 + (rand() % PROCESS_AMOUNT);
+
+	create_random_processes();
 	high = queue_new();
 	low = queue_new();
+
 	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
 		io[i] = queue_new();
 
 	printf("Executando o escalonador de processos...\n");
 	while (remaining_time != quantity)
 	{
-		calculate_scheduler(quantity);
-		sleep(1);
+		calculate_scheduler();
+		// sleep(1);
 	}
 
 	printf("\n--- Vida dos processos: ---\n");
