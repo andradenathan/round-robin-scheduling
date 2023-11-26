@@ -7,20 +7,6 @@
 
 #include "util.h"
 
-#define PROCESS_AMOUNT 10
-#define START_LIMIT 10
-#define DURATION_LIMIT 20
-
-#define IO_NOT_DONE -1
-#define IO_IN_PROGRESS 0
-#define IO_DONE 1
-
-#define IO_LIMIT 3
-#define IO_TYPES_AMOUNT 3
-#define IO_DISK_DURATION 3
-#define IO_TAPE_DURATION 5
-#define IO_PRINTER_DURATION 10
-
 int current_time;
 int remaining_time;
 int quantity;
@@ -294,16 +280,6 @@ int main(int argc, char **argv)
 	int **processes_statistics = map_processes_to_statistics(quantity, processes);
 	printf("----------------\n");
 	show_processes_statistics(quantity, processes_statistics);
-
-	// for (int i = 0; i < quantity; i++)
-	// {
-	// 	Process *process = &processes[i];
-	// 	printf("PID: %d Executado em: %d Finalizado em: %d Duração: %d\n",
-	// 		   process->pid,
-	// 		   process->enqueued_time,
-	// 		   process->dequeued_time,
-	// 		   process->dequeued_time - process->enqueued_time);
-	// }
 
 	queue_free(high);
 	queue_free(low);
