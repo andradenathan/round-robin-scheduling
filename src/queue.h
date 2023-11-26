@@ -3,7 +3,7 @@
 
 enum
 {
-	IO_DISK = 0,
+	IO_DISK,
 	IO_TAPE,
 	IO_PRINTER,
 };
@@ -13,6 +13,8 @@ typedef struct
 	int pid;
 	int ppid;
 	int start;
+	int status;
+	int priority;
 
 	int enqueued_time;
 	int dequeued_time;
@@ -23,7 +25,7 @@ typedef struct
 	int io_amount;
 	int *io_starts;
 	int *io_types;
-	int *io_done;
+	int *io_status;
 } Process;
 
 typedef struct Node Node;

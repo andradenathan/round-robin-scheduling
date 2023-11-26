@@ -1,4 +1,5 @@
 #include "util.h"
+#include <stdarg.h>
 
 const char *get_enum_name(int enum_value)
 {
@@ -65,4 +66,33 @@ void show_processes_statistics(int processes_amount, int **processes)
     }
 
     printf("----------------\n");
+}
+
+void highlighted_print(Colors color, const char *string, ...)
+{
+    const char *color_codes[] = {
+        "\033[0;30m", // BLACK
+        "\033[0;31m", // RED
+        "\033[0;32m", // GREEN
+        "\033[0;33m", // YELLOW
+        "\033[0;34m", // BLUE
+        "\033[0;35m", // MAGENTA
+        "\033[0;36m", // CYAN
+        "\033[0;37m"  // WHITE
+    };
+
+    const char *reset_code = "\033[0m";
+
+    if (color >= BLACK && color <= WHITE)
+    {
+        printf("%s", color_codes[color]);
+    }
+
+    va_list args;
+    va_start(args, string);
+    vprintf(string, args);
+    va_end(args);
+
+    // Reseta a formatação
+    printf("%s", reset_code);
 }
