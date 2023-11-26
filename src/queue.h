@@ -39,14 +39,14 @@ typedef struct
 	Node *head;
 } Queue;
 
-Queue *queue_new(void);
+Queue *new_queue(void);
 
-void queue_free(Queue *q);
+void free_queue(Queue *queue);
 
-void queue_add(Queue *q, Process *p);
+void add_process_queue(Queue *queue, Process *process);
 
-Process *queue_remove(Queue *q);
+Process *remove_process_queue(Queue *queue);
 
-int queue_is_empty(Queue *q);
+int is_empty_queue(Queue *queue);
 
-void queue_print(Queue *q);
+void print_queue(Queue *queue);

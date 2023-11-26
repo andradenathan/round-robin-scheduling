@@ -3,18 +3,18 @@
 
 #include "queue.h"
 
-Queue *queue_new(void)
+Queue *new_queue(void)
 {
-	Queue *new = malloc(sizeof(Queue));
-	new->head = NULL;
-	return new;
+	Queue *queue = malloc(sizeof(Queue));
+	queue->head = NULL;
+	return queue;
 }
 
-void queue_free(Queue *q)
+void free_queue(Queue *queue)
 {
-	if (q->head)
+	if (queue->head)
 	{
-		Node *node = q->head;
+		Node *node = queue->head;
 		while (node)
 		{
 			Node *old = node;
@@ -22,55 +22,58 @@ void queue_free(Queue *q)
 			free(old);
 		}
 	}
-	free(q);
+	free(queue);
 }
 
-void queue_add(Queue *q, Process *p)
+void add_process_queue(Queue *queue, Process *process)
 {
 	Node *new = malloc(sizeof(Node));
-	new->value = p;
+	new->value = process;
 	new->next = NULL;
 
-	if (!q->head)
+	if (!queue->head)
 	{
-		q->head = new;
+		queue->head = new;
 	}
 	else
 	{
-		Node *tail;
-		for (tail = q->head; tail->next; tail = tail->next)
-			;
+		Node *tail = queue->head;
+		while (tail->next)
+			tail = tail->next;
+
+		// for (tail = q->head; tail->next; tail = tail->next)
+		// 	;
 
 		tail->next = new;
 	}
 }
 
-Process *queue_remove(Queue *q)
+Process *remove_process_queue(Queue *queue)
 {
-	if (!q->head)
+	if (!queue->head)
 		return NULL;
 
-	Node *old = q->head;
-	Process *ret = old->value;
-	q->head = old->next;
+	Node *old = queue->head;
+	Process *process = old->value;
+	queue->head = old->next;
 	free(old);
 
-	return ret;
+	return process;
 }
 
-int queue_is_empty(Queue *q)
+int is_empty_queue(Queue *queue)
 {
-	return q->head == NULL;
+	return queue->head == NULL;
 }
 
-void queue_print(Queue *q)
+void print_queue(Queue *queue)
 {
-	if (queue_is_empty(q))
+	if (is_empty_queue(queue))
 		printf("A fila está vazia no momento.\n");
 
-	for (Node *node = q->head; node; node = node->next)
+	for (Node *node = queue->head; node; node = node->next)
 	{
-		printf("%d (%d/%d) ", node->value->pid, node->value->progress, node->value->duration);
+		printf("[pid: %d | progresso: %d / duração: %d]\n", node->value->pid, node->value->progress, node->value->duration);
 		if (node->next != NULL)
 			printf("-> ");
 	}

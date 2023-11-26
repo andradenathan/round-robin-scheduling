@@ -76,14 +76,14 @@ void select_process_to_run()
 {
 	do
 	{
-		if (!queue_is_empty(high))
+		if (!is_empty_queue(high))
 		{
-			running = queue_remove(high);
+			running = remove_process_queue(high);
 			printf("O processo (PID: %d) da fila de ALTA prioridade será executado.\n", running->pid);
 		}
-		else if (!queue_is_empty(low))
+		else if (!is_empty_queue(low))
 		{
-			running = queue_remove(low);
+			running = remove_process_queue(low);
 			printf("O processo (PID: %d) da fila de BAIXA prioridade será executado.\n", running->pid);
 		}
 
@@ -104,7 +104,7 @@ void select_process_to_run()
 			{
 				int type = running->io_types[i];
 				running->io_done[i] = IO_IN_PROGRESS;
-				queue_add(io[type], running);
+				add_process_queue(io[type], running);
 				running = NULL;
 				break;
 			}
@@ -123,11 +123,11 @@ void select_io_to_processes()
 			switch (i)
 			{
 			case IO_DISK:
-				queue_add(low, ended_process);
+				add_process_queue(low, ended_process);
 				break;
 			case IO_TAPE:
 			case IO_PRINTER:
-				queue_add(high, ended_process);
+				add_process_queue(high, ended_process);
 				break;
 			}
 
@@ -141,11 +141,11 @@ void select_io_to_processes()
 			}
 
 			io_progress[i] = 0;
-			io_running[i] = queue_remove(io[i]);
+			io_running[i] = remove_process_queue(io[i]);
 		}
 		else if (!io_running[i])
 		{
-			io_running[i] = queue_remove(io[i]);
+			io_running[i] = remove_process_queue(io[i]);
 		}
 
 		if (io_running[i])
@@ -153,7 +153,7 @@ void select_io_to_processes()
 	}
 }
 
-void calculate_scheduler()
+void scheduler()
 {
 	printf("Inserindo novos processos na fila...\n");
 	for (int i = 0; i < PROCESS_AMOUNT; i++)
@@ -162,7 +162,7 @@ void calculate_scheduler()
 		if (process->start == current_time)
 		{
 			printf("Processo (PID: %d) inserido na fila de ALTA prioridade.\n", process->pid);
-			queue_add(high, process);
+			add_process_queue(high, process);
 		}
 	}
 	printf("-------------------------------------\n");
@@ -179,7 +179,7 @@ void calculate_scheduler()
 		else
 		{
 			printf("Processo (PID: %d) inserido na fila de BAIXA prioridade.\n", running->pid);
-			queue_add(low, running);
+			add_process_queue(low, running);
 		}
 	}
 
@@ -195,16 +195,16 @@ void calculate_scheduler()
 	else
 		printf("Nenhum processo em execução no momento.\n\n");
 	printf("(-->) Fila de ALTA prioridade:\n");
-	queue_print(high);
+	print_queue(high);
 	printf("\n");
 	printf("(-->) Fila de BAIXA prioridade:\n");
-	queue_print(low);
+	print_queue(low);
 	printf("\n\n");
 	if (io_running[IO_DISK])
 	{
 		printf("Processo em I/O do Disco (PID: %d)\n", io_running[IO_DISK]->pid);
 		printf("Fila de I/O do Disco:\n");
-		queue_print(io[IO_DISK]);
+		print_queue(io[IO_DISK]);
 	}
 	else
 		printf("Nenhum processo está executando I/O do Disco no momento.\n");
@@ -213,7 +213,7 @@ void calculate_scheduler()
 	{
 		printf("Processo em I/O da Fita (PID: %d)\n", io_running[IO_TAPE]->pid);
 		printf("Fila de I/O da Fita:\n");
-		queue_print(io[IO_TAPE]);
+		print_queue(io[IO_TAPE]);
 	}
 
 	else
@@ -223,10 +223,10 @@ void calculate_scheduler()
 	{
 		printf("Processo em I/O da Impressora (PID: %d)\n", io_running[IO_PRINTER]->pid);
 		printf("Fila de I/O da Impressora:\n");
-		queue_print(io[IO_PRINTER]);
+		print_queue(io[IO_PRINTER]);
 	}
 	else
-		printf("Nenhum processo está executando I/O da Fila no momento.\n");
+		printf("Nenhum processo está executando I/O da Impressora no momento.\n");
 
 	printf("\n");
 
@@ -251,16 +251,16 @@ int main(int argc, char **argv)
 	printf("=====================================\n");
 
 	printf("Criando filas de prioridade...\n");
-	high = queue_new();
+	high = new_queue();
 	printf("Fila de prioridade ALTA criada com sucesso.\n");
-	low = queue_new();
+	low = new_queue();
 	printf("Fila de prioridade BAIXA criada com sucesso.\n");
 	printf("=====================================\n");
 
 	printf("Criando filas de I/O...\n");
 	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
 	{
-		io[i] = queue_new();
+		io[i] = new_queue();
 		printf("Fila de I/O para %s criada com sucesso.\n", get_enum_name(i));
 	}
 	printf("=====================================\n");
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 	{
 		printf("=====================================\n");
 		printf("Tempo restante (dispositivo): %d\n", remaining_time);
-		calculate_scheduler();
+		scheduler();
 	}
 	printf("Escalonador de processos finalizado.\n");
 	printf("=====================================\n");
@@ -281,10 +281,10 @@ int main(int argc, char **argv)
 	printf("----------------\n");
 	show_processes_statistics(quantity, processes_statistics);
 
-	queue_free(high);
-	queue_free(low);
+	free_queue(high);
+	free_queue(low);
 	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-		queue_free(io[i]);
+		free_queue(io[i]);
 
 	free(processes_statistics);
 }
