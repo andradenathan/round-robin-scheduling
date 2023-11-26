@@ -62,39 +62,43 @@ void create_random_processes()
 	{
 		Process *process = &processes[i];
 		process->pid = i;
+		process->ppid = (i + 2 * (rand() % 100)) * 3;
 		process->start = rand() % START_LIMIT;
 		process->duration = (rand() % DURATION_LIMIT) + 1;
 		process->progress = 0;
 
 		initialize_process(process);
 
+		printf("Processo: %d\n", i + 1);
 		printf("PID %d\n", process->pid);
+		printf("PPID %d\n", process->ppid);
 		printf("Início %d\n", process->start);
 		printf("Duração %d\n", process->duration);
-		printf("Quantidade IO %d\n", process->io_amount);
+		printf("Quantidade de IO %d\n", process->io_amount);
 		for (int j = 0; j < process->io_amount; j++)
 		{
-			printf("Tipo: %d Inicio: %d\n", process->io_types[j], process->io_starts[j]);
+			printf("Tipo: %s \t Inicio: %d\n", get_enum_name(process->io_types[j]), process->io_starts[j]);
 		}
 		printf("-------------\n");
 		sleep(1);
 	}
 
-	printf("%d processos gerados aleatoriamente com sucesso.\n\n", quantity);
+	printf("%d processos criados aleatoriamente com sucesso.\n\n", quantity);
 }
 
 void select_process_to_run()
 {
 	do
 	{
-		/* Escolhe o processo que será executado */
 		if (!queue_is_empty(high))
 		{
 			running = queue_remove(high);
+			printf("O processo (PID: %d) da fila de ALTA prioridade será executado.\n", running->pid);
 		}
 		else if (!queue_is_empty(low))
 		{
 			running = queue_remove(low);
+			printf("O processo (PID: %d) da fila de BAIXA prioridade será executado.\n", running->pid);
 		}
 
 		if (!running)
@@ -110,7 +114,7 @@ void select_process_to_run()
 		{
 			int start = running->io_starts[i];
 
-			if (start == running->progress && running->io_done[i] == -1)
+			if (start == running->progress && running->io_done[i] == IO_NOT_DONE)
 			{
 				int type = running->io_types[i];
 				running->io_done[i] = IO_IN_PROGRESS;
@@ -165,61 +169,80 @@ void select_io_to_processes()
 
 void calculate_scheduler()
 {
-	printf("Rodando o escalonador de processos...\n");
-	/* Coloca processos novos na fila */
+	printf("Inserindo novos processos na fila...\n");
 	for (int i = 0; i < PROCESS_AMOUNT; i++)
 	{
 		Process *process = &processes[i];
 		if (process->start == current_time)
+		{
+			printf("Processo (PID: %d) inserido na fila de ALTA prioridade.\n", process->pid);
 			queue_add(high, process);
+		}
 	}
-
-	/* Move processos interrompidos para a fila de baixa prioridade */
+	printf("-------------------------------------\n");
+	printf("Movendo processos interrompidos para a fila de baixa prioridade...\n");
 	if (running)
 	{
 		if (running->progress == running->duration)
 		{
 			remaining_time++;
+			printf("Processo (PID: %d) finalizado.\n", running->pid);
 			running->dequeued_time = current_time;
 			running = NULL;
 		}
 		else
 		{
+			printf("Processo (PID: %d) inserido na fila de BAIXA prioridade.\n", running->pid);
 			queue_add(low, running);
 		}
 	}
 
+	printf("=====================================\n");
+	// TODO: renomear os nomes das funções abaixo, não ficou claro ainda.
 	select_process_to_run();
 	select_io_to_processes();
 
-	printf("Tick: %d\n", current_time);
+	printf("-------------------------------------\n");
+	printf("(*) Tempo do processo: %d\n", current_time);
 	if (running)
-		printf("Running: %d\n", running->pid);
+		printf("Processo em execução (PID: %d)\n\n", running->pid);
 	else
-		printf("Running: none\n");
-	printf("High:\n");
+		printf("Nenhum processo em execução no momento.\n\n");
+	printf("(-->) Fila de ALTA prioridade:\n");
 	queue_print(high);
-	printf("Low:\n");
+	printf("\n");
+	printf("(-->) Fila de BAIXA prioridade:\n");
 	queue_print(low);
+	printf("\n\n");
 	if (io_running[IO_DISK])
-		printf("Running disk: %d\n", io_running[IO_DISK]->pid);
+	{
+		printf("Processo em I/O do Disco (PID: %d)\n", io_running[IO_DISK]->pid);
+		printf("Fila de I/O do Disco:\n");
+		queue_print(io[IO_DISK]);
+	}
 	else
-		printf("Running disk: none\n");
-	printf("Disk:\n");
-	queue_print(io[IO_DISK]);
+		printf("Nenhum processo está executando I/O do Disco no momento.\n");
+
 	if (io_running[IO_TAPE])
-		printf("Running tape: %d\n", io_running[IO_TAPE]->pid);
+	{
+		printf("Processo em I/O da Fita (PID: %d)\n", io_running[IO_TAPE]->pid);
+		printf("Fila de I/O da Fita:\n");
+		queue_print(io[IO_TAPE]);
+	}
+
 	else
-		printf("Running tape: none\n");
-	printf("Tape:\n");
-	queue_print(io[IO_TAPE]);
+		printf("Nenhum processo está executando I/O da Fita no momento.\n");
+
 	if (io_running[IO_PRINTER])
-		printf("Running printer: %d\n", io_running[IO_PRINTER]->pid);
+	{
+		printf("Processo em I/O da Impressora (PID: %d)\n", io_running[IO_PRINTER]->pid);
+		printf("Fila de I/O da Impressora:\n");
+		queue_print(io[IO_PRINTER]);
+	}
 	else
-		printf("Running printer: none\n");
-	printf("Printer:\n");
-	queue_print(io[IO_PRINTER]);
-	printf("---\n");
+		printf("Nenhum processo está executando I/O da Fila no momento.\n");
+
+	printf("\n");
 
 	if (running)
 		running->progress++;
@@ -233,7 +256,7 @@ int main(int argc, char **argv)
 	srand((unsigned)time(NULL));
 
 	quantity = 1 + (rand() % PROCESS_AMOUNT);
-	printf("Quantidade de processos selecionada aleatoriamente: %d\n", quantity);
+	printf("Quantidade de processos selecionados aleatoriamente: %d\n", quantity);
 	printf("=====================================\n");
 
 	printf("Gerando processos aleatoriamente...\n");
@@ -259,21 +282,33 @@ int main(int argc, char **argv)
 	printf("Executando o escalonador de processos...\n");
 	while (remaining_time != quantity)
 	{
-		printf("Tempo restante: %d\n", quantity - remaining_time);
+		printf("=====================================\n");
+		printf("Tempo restante (dispositivo): %d\n", remaining_time);
 		calculate_scheduler();
-		// sleep(1);
 	}
+	printf("Escalonador de processos finalizado.\n");
+	printf("=====================================\n");
 
-	// printf("\n--- Vida dos processos: ---\n");
+	printf("\nEstatísticas:\n");
+
+	int **processes_statistics = map_processes_to_statistics(quantity, processes);
+	printf("----------------\n");
+	show_processes_statistics(quantity, processes_statistics);
+
 	// for (int i = 0; i < quantity; i++)
 	// {
-	// 	Process *p = &processes[i];
-	// 	printf("PID: %d Start tick: %d End tick: %d Ticks taken: %d\n",
-	// 		   p->pid, p->enqueued_time, p->dequeued_time, p->dequeued_time - p->enqueued_time);
+	// 	Process *process = &processes[i];
+	// 	printf("PID: %d Executado em: %d Finalizado em: %d Duração: %d\n",
+	// 		   process->pid,
+	// 		   process->enqueued_time,
+	// 		   process->dequeued_time,
+	// 		   process->dequeued_time - process->enqueued_time);
 	// }
 
-	// queue_free(high);
-	// queue_free(low);
-	// for (int i = 0; i < IO_TYPES_AMOUNT; i++)
-	// queue_free(io[i]);
+	queue_free(high);
+	queue_free(low);
+	for (int i = 0; i < IO_TYPES_AMOUNT; i++)
+		queue_free(io[i]);
+
+	free(processes_statistics);
 }

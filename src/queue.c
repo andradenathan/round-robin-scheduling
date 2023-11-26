@@ -66,8 +66,12 @@ int queue_is_empty(Queue *q)
 void queue_print(Queue *q)
 {
 	if (queue_is_empty(q))
-		printf("Queue is empty.\n");
+		printf("A fila está vazia no momento.\n");
 
 	for (Node *node = q->head; node; node = node->next)
-		printf("%d (%d/%d)\n", node->value->pid, node->value->progress, node->value->duration);
+	{
+		printf("%d (%d/%d) ", node->value->pid, node->value->progress, node->value->duration);
+		if (node->next != NULL)
+			printf("-> ");
+	}
 }
