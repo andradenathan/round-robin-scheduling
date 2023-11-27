@@ -11,7 +11,7 @@ int current_time;
 int remaining_time;
 int random_processes_amount;
 
-Process processes[PROCESS_AMOUNT];
+Process processes[PROCESS_MAX_AMOUNT];
 Process *in_execution_process;
 Queue *high, *low;
 
@@ -24,7 +24,7 @@ void initialize_process(Process *process)
 {
 	if (process->duration > 1)
 	{
-		process->io_amount = rand() % (IO_LIMIT + 1);
+		process->io_amount = rand() % (IO_AMOUNT + 1);
 		process->io_starts = malloc(process->io_amount * sizeof(int));
 		process->io_types = malloc(process->io_amount * sizeof(int));
 		process->io_status = malloc(process->io_amount * sizeof(int));
@@ -49,7 +49,7 @@ void create_random_processes()
 		Process *process = &processes[i];
 		process->pid = i;
 		process->ppid = (i + 2 * (rand() % 100)) * 3;
-		process->start = rand() % START_LIMIT;
+		process->start = rand() % START_TIME_LIMIT;
 		process->duration = (rand() % DURATION_LIMIT) + 1;
 		process->progress = 0;
 		process->status = READY;
@@ -162,7 +162,7 @@ void kill_process()
 void scheduler()
 {
 	printf("Inserindo novos processos na fila...\n");
-	for (int i = 0; i < PROCESS_AMOUNT; i++)
+	for (int i = 0; i < PROCESS_MAX_AMOUNT; i++)
 	{
 		Process *process = &processes[i];
 		if (process->start == current_time)
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	printf("Iniciando o algoritmo de escalonamento...\n");
 	srand((unsigned)time(NULL));
 
-	random_processes_amount = 1 + (rand() % PROCESS_AMOUNT);
+	random_processes_amount = 1 + (rand() % PROCESS_MAX_AMOUNT);
 	printf("Quantidade de processos selecionados aleatoriamente: %d\n", random_processes_amount);
 	printf("=====================================\n");
 
