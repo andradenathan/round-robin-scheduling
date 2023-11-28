@@ -53,7 +53,7 @@ void create_random_processes()
 		process->duration = (rand() % DURATION_LIMIT) + 1;
 		process->progress = 0;
 		process->status = READY;
-		process->priority = rand() % 2;
+		process->priority = HIGH_PRIORITY;
 
 		initialize_process(process);
 
@@ -248,6 +248,7 @@ int main(int argc, char **argv)
 	srand((unsigned)time(NULL));
 
 	random_processes_amount = 1 + (rand() % PROCESS_MAX_AMOUNT);
+
 	printf("Quantidade de processos selecionados aleatoriamente: %d\n", random_processes_amount);
 	printf("=====================================\n");
 
@@ -282,7 +283,7 @@ int main(int argc, char **argv)
 	printf("Escalonador de processos finalizado.\n");
 	printf("=====================================\n");
 
-	printf("\nEstatísticas:\n");
+	printf("\nResultado da execução:\n");
 
 	int **processes_statistics = map_processes_to_statistics(random_processes_amount, processes);
 	printf("----------------\n");
