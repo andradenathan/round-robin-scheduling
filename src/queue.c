@@ -27,13 +27,13 @@ void free_queue(Queue *queue)
 
 void add_process_queue(Queue *queue, Process *process)
 {
-	Node *new = malloc(sizeof(Node));
-	new->value = process;
-	new->next = NULL;
+	Node *node = malloc(sizeof(Node));
+	node->value = process;
+	node->next = NULL;
 
 	if (!queue->head)
 	{
-		queue->head = new;
+		queue->head = node;
 	}
 	else
 	{
@@ -41,10 +41,7 @@ void add_process_queue(Queue *queue, Process *process)
 		while (tail->next)
 			tail = tail->next;
 
-		// for (tail = q->head; tail->next; tail = tail->next)
-		// 	;
-
-		tail->next = new;
+		tail->next = node;
 	}
 }
 
