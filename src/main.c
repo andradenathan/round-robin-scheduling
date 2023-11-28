@@ -162,7 +162,7 @@ void kill_process()
 void scheduler()
 {
 	printf("Inserindo novos processos na fila...\n");
-	for (int i = 0; i < PROCESS_MAX_AMOUNT; i++)
+	for (int i = 0; i < random_processes_amount; i++)
 	{
 		Process *process = &processes[i];
 		if (process->start == current_time)
